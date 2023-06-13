@@ -1,0 +1,63 @@
+#include "stm32f1xx_hal.h"
+
+TIM_HandleTypeDef htim3;
+
+void TIM3_PWM_Init(void)
+{
+  TIM_OC_InitTypeDef sConfigOC;
+  
+  // Enable TIM3 clock
+  __HAL_RCC_TIM3_CLK_ENABLE();
+  
+  // Configure GPIOB Pin 0 as alternate function push-pull (for TIM3_CH3)
+  GPIO_InitTypeDef GPIO_InitStruct;
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  
+  // Configure TIM3
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 0; // No prescaler
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 999; // PWM period (1000-1)
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  HAL_TIM_PWM_Init(&htim3);
+  
+  // Configure PWM channel
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 500; // Initial duty cycle (0-999)
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_3);
+  
+  // Start PWM generation
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
+}
+
+int main(void)
+{
+  // Initialize HAL
+  HAL_Init();
+  
+  // Initialize TIM3 for PWM
+  TIM3_PWM_Init();
+  
+  while (1)
+  {
+    // Increase the duty cycle
+    for (int duty = 0; duty <= 999; duty += 10)
+    {
+      __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, duty);
+      HAL_Delay(100);
+    }
+    
+    // Decrease the duty cycle
+    for (int duty = 999; duty >= 0; duty -= 10)
+    {
+      __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, duty);
+      HAL_Delay(100);
+    }
+  }
+}
